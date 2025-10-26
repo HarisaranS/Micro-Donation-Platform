@@ -61,19 +61,42 @@ public class WebController {
     }
 
     @GetMapping("/campaigns")
-    public String listCampaigns(Model model) {
+    public String listCampaigns(Model model, Authentication authentication) {
         List<CampaignDTO> campaigns = campaignService.getAllCampaigns();
         model.addAttribute("campaigns", campaigns != null ? campaigns : Collections.emptyList());
+
+        // *** FIX: Add authenticated user to model ***
+        if (authentication != null && authentication.isAuthenticated()) {
+            String email = authentication.getName();
+            try {
+                UserDTO user = userService.getUserByEmail(email);
+                model.addAttribute("user", user);
+            } catch (Exception e) {
+                // User not found, proceed without user object
+            }
+        }
+
         return "campaigns";
     }
 
+    // *** FIXED METHOD: Now passes authenticated user to campaign details ***
     @GetMapping("/campaigns/{id}")
-    public String viewCampaign(@PathVariable Long id, Model model) {
+    public String viewCampaign(@PathVariable Long id, Model model, Authentication authentication) {
         try {
             CampaignDTO campaign = campaignService.getCampaignById(id);
             model.addAttribute("campaign", campaign);
-            model.addAttribute("donations", donationService.getDonationsByCampaign(id));
+
+            List<DonationDTO> donations = donationService.getDonationsByCampaign(id);
+            model.addAttribute("donations", donations != null ? donations : Collections.emptyList());
             model.addAttribute("donation", new DonationDTO());
+
+            // *** FIX: Add authenticated user to model so donation form appears ***
+            if (authentication != null && authentication.isAuthenticated()) {
+                String email = authentication.getName();
+                UserDTO user = userService.getUserByEmail(email);
+                model.addAttribute("user", user);
+            }
+
             return "campaign-details";
         } catch (Exception e) {
             return "redirect:/campaigns";
@@ -135,8 +158,14 @@ public class WebController {
         UserDTO user = userService.getUserByEmail(email);
 
         model.addAttribute("user", user);
-        model.addAttribute("donations", donationService.getDonationsByUser(user.getUserId()));
+
+        List<DonationDTO> userDonations = donationService.getDonationsByUser(user.getUserId());
+        model.addAttribute("donations", userDonations != null ? userDonations : Collections.emptyList());
         model.addAttribute("totalDonated", donationService.getTotalDonationsByUser(user.getUserId()));
+
+        // *** NEW: Add active campaigns to dashboard so users can browse ***
+        List<CampaignDTO> activeCampaigns = campaignService.getActiveCampaigns();
+        model.addAttribute("activeCampaigns", activeCampaigns != null ? activeCampaigns : Collections.emptyList());
 
         return "user-dashboard";
     }
