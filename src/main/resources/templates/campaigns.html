@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Campaigns - College Fund</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .campaign-card {
+            transition: transform 0.3s;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: 100%;
+        }
+        .campaign-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+        .progress {
+            height: 8px;
+        }
+        .badge-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+<!-- Navigation (same as index.html) -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="fas fa-hands-helping"></i> College Fund</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/campaigns">Campaigns</a></li>
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <a class="nav-link" href="/dashboard">Dashboard</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link" href="/admin/dashboard">Admin</a>
+                </li>
+                <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <a class="nav-link" href="/login">Login</a>
+                </li>
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-sm ms-2">Logout</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Page Header -->
+<div class="bg-primary text-white py-5">
+    <div class="container text-center">
+        <h1><i class="fas fa-flag"></i> All Campaigns</h1>
+        <p class="lead">Support college initiatives and make a difference</p>
+    </div>
+</div>
+
+<!-- Campaigns List -->
+<section class="py-5">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h4>Showing <span class="text-primary" th:text="${campaigns.size()}">0</span> campaigns</h4>
+            </div>
+            <div class="col-md-6 text-end" sec:authorize="hasRole('ADMIN')">
+                <a href="/admin/campaigns/new" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Create New Campaign
+                </a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-4" th:each="campaign : ${campaigns}">
+                <div class="card campaign-card position-relative">
+                        <span class="badge badge-status"
+                              th:classappend="${campaign.status == 'ACTIVE'} ? 'bg-success' : 'bg-secondary'"
+                              th:text="${campaign.status}">
+                        </span>
+                    <div class="card-body">
+                        <h5 class="card-title" th:text="${campaign.title}">Campaign Title</h5>
+                        <p class="card-text text-muted"
+                           th:text="${#strings.abbreviate(campaign.description, 120)}">
+                            Description
+                        </p>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                    <span class="fw-bold text-success">
+                                        ₹<span th:text="${#numbers.formatDecimal(campaign.raisedAmount, 0, 2)}">0</span>
+                                    </span>
+                                <span class="text-muted">
+                                        of ₹<span th:text="${#numbers.formatDecimal(campaign.goalAmount, 0, 2)}">0</span>
+                                    </span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                     th:style="'width: ' + ${campaign.progressPercentage} + '%'">
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                <span th:text="${#numbers.formatDecimal(campaign.progressPercentage, 0, 1)}">0</span>% funded
+                            </small>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i>
+                                Ends: <span th:text="${campaign.endDate}">Date</span>
+                            </small>
+                        </div>
+
+                        <a th:href="@{/campaigns/{id}(id=${campaign.campaignId})}"
+                           class="btn btn-primary w-100">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                    </div>
+                    <div class="card-footer text-muted">
+                        <small>
+                            <i class="fas fa-user"></i> By
+                            <span th:text="${campaign.creatorName}">Creator</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${campaigns.isEmpty()}" class="text-center py-5">
+            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+            <h4>No campaigns found</h4>
+            <p class="text-muted">Check back later for new campaigns</p>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-dark text-white py-4 mt-5">
+    <div class="container text-center">
+        <p class="mb-0">&copy; 2025 College Fund Platform. All rights reserved.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
