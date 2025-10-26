@@ -1,200 +1,288 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${campaign.title} + ' - College Fund'">Campaign Details</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .campaign-hero {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 60px 0;
-        }
-        .donation-card {
-            position: sticky;
-            top: 20px;
-        }
-        .donor-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-    </style>
+    <title>Campaign Details - Micro Donation Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-<!-- Navigation -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
-        <a class="navbar-brand" href="/"><i class="fas fa-hands-helping"></i> College Fund</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="/campaigns">Campaigns</a></li>
-                <li class="nav-item" sec:authorize="isAuthenticated()">
-                    <a class="nav-link" href="/dashboard">Dashboard</a>
-                </li>
-                <li class="nav-item" sec:authorize="!isAuthenticated()">
-                    <a class="nav-link" href="/login">Login</a>
-                </li>
-            </ul>
-        </div>
+        <a class="navbar-brand" href="/">Micro Donation</a>
     </div>
 </nav>
 
-<!-- Campaign Header -->
-<div class="campaign-hero">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8">
-                <h1 th:text="${campaign.title}">Campaign Title</h1>
-                <p class="lead"><i class="fas fa-user"></i> Created by
-                    <span th:text="${campaign.creatorName}">Creator</span>
-                </p>
-                <span class="badge bg-light text-dark me-2">
-                        <i class="fas fa-calendar"></i>
-                        <span th:text="${campaign.startDate}">Start</span> -
-                        <span th:text="${campaign.endDate}">End</span>
-                    </span>
-                <span class="badge"
-                      th:classappend="${campaign.status == 'ACTIVE'} ? 'bg-success' : 'bg-secondary'"
-                      th:text="${campaign.status}">
-                    </span>
+<div class="container mt-4">
+    <div class="row">
+        <!-- Campaign Details Section -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title" th:text="${campaign.title}">Campaign Title</h1>
+                    <p class="text-muted">
+                        Created by
+                        <strong th:text="${campaign.creatorName}">Creator</strong>
+                    </p>
+
+                    <div class="mb-3">
+                            <span class="badge bg-info">
+                                Start - <span th:text="${campaign.startDate}"></span>
+                            </span>
+                        <span class="badge bg-warning">
+                                End - <span th:text="${campaign.endDate}"></span>
+                            </span>
+                        <span class="badge"
+                              th:classappend="${campaign.status == 'ACTIVE'} ? 'bg-success' : 'bg-secondary'"
+                              th:text="${campaign.status}">
+                            </span>
+                    </div>
+
+                    <!-- Success/Error Messages -->
+                    <div class="alert alert-success alert-dismissible fade show"
+                         id="successMessage" style="display:none;">
+                        <strong>Thank you for your donation!</strong>
+                        Your contribution has been recorded successfully.
+                    </div>
+
+                    <div class="alert alert-danger alert-dismissible fade show"
+                         id="errorMessage" style="display:none;">
+                        <strong>Error processing donation.</strong>
+                        <span id="errorText">Please try again.</span>
+                    </div>
+
+                    <h3 class="mt-4">About This Campaign</h3>
+                    <p th:text="${campaign.description}">Description</p>
+
+                    <!-- Recent Donors Section -->
+                    <div class="mt-4">
+                        <h5>Recent Donors</h5>
+                        <div th:if="${donations == null || donations.isEmpty()}">
+                            <p class="text-muted">No donations yet. Be the first to contribute!</p>
+                        </div>
+                        <ul class="list-group" th:unless="${donations == null || donations.isEmpty()}">
+                            <li class="list-group-item" th:each="donation : ${donations}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong th:text="${donation.userName}">Donor Name</strong>
+                                        <br>
+                                        <small class="text-muted"
+                                               th:text="${#temporals.format(donation.donationDate, 'dd MMM yyyy, hh:mm a')}">
+                                            Date
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <h5 class="mb-0 text-success">
+                                            ₹<span th:text="${donation.amount}">0</span>
+                                        </h5>
+                                        <small class="text-muted" th:text="${donation.paymentMode}">Payment Mode</small>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Donation Form Section -->
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <h4 class="card-title text-center text-success">
+                        ₹<span th:text="${campaign.raisedAmount}">0</span>
+                    </h4>
+                    <p class="text-center text-muted">
+                        raised of ₹<span th:text="${campaign.goalAmount}">0</span> goal
+                    </p>
+
+                    <!-- Progress Bar -->
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div class="progress-bar bg-success"
+                             role="progressbar"
+                             th:style="'width: ' + ${campaign.progressPercentage} + '%'"
+                             th:attr="aria-valuenow=${campaign.progressPercentage}">
+                            <strong th:text="${campaign.progressPercentage} + '%'">0%</strong> Complete
+                        </div>
+                    </div>
+
+                    <!-- *** NEW: Wallet Balance Display *** -->
+                    <div class="alert alert-info" id="walletBalanceDisplay" style="display:none;">
+                        <strong>Your Wallet Balance:</strong>
+                        <h5 class="mb-0">₹<span id="userWalletBalance">0.00</span></h5>
+                    </div>
+
+                    <!-- Donation Form -->
+                    <form id="donationForm" th:if="${user != null}">
+                        <input type="hidden" id="userId" th:value="${user.userId}">
+                        <input type="hidden" id="campaignId" th:value="${campaign.campaignId}">
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Donation Amount (₹)</label>
+                            <input type="number" class="form-control" id="amount" name="amount"
+                                   min="1" step="0.01" placeholder="Enter amount" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="paymentMode" class="form-label">Payment Mode</label>
+                            <select class="form-select" id="paymentMode" name="paymentMode" required>
+                                <option value="">Select Payment Mode</option>
+                                <option value="Wallet">Wallet</option>
+                                <option value="Credit Card">Credit Card</option>
+                                <option value="Debit Card">Debit Card</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Net Banking">Net Banking</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100">
+                            Donate Now
+                        </button>
+                    </form>
+
+                    <!-- Not Logged In Message -->
+                    <div th:unless="${user != null}" class="text-center">
+                        <p class="text-muted">Please login to make a donation</p>
+                        <a href="/login" class="btn btn-outline-primary w-100">
+                            Login to Donate
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <a th:href="@{/campaigns/{id}/report(id=${campaign.campaignId})}"
+                       class="btn btn-outline-primary w-100">
+                        View Full Report
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Campaign Content -->
-<section class="py-5">
-    <div class="container">
-        <div class="row">
-            <!-- Campaign Details -->
-            <div class="col-lg-8 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h3 class="mb-4">About This Campaign</h3>
-                        <p class="lead" th:text="${campaign.description}">Description</p>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
-                        <!-- Success Message -->
-                        <div th:if="${param.success}" class="alert alert-success mt-4">
-                            <i class="fas fa-check-circle"></i> Thank you for your donation!
-                            Your contribution has been recorded successfully.
-                        </div>
-                        <div th:if="${param.error}" class="alert alert-danger mt-4">
-                            <i class="fas fa-exclamation-circle"></i> Error processing donation.
-                            Please try again.
-                        </div>
-                    </div>
-                </div>
+<!-- *** MODIFIED: Enhanced JavaScript with Wallet Balance Check *** -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const donationForm = document.getElementById('donationForm');
+        const userId = document.getElementById('userId')?.value;
+        const campaignId = document.getElementById('campaignId')?.value;
 
-                <!-- Recent Donors -->
-                <div class="card mt-4">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-heart"></i> Recent Donors</h5>
-                    </div>
-                    <div class="card-body donor-list">
-                        <div th:if="${donations.isEmpty()}" class="text-center text-muted py-4">
-                            <i class="fas fa-info-circle"></i> No donations yet. Be the first to contribute!
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom"
-                             th:each="donation : ${donations}">
-                            <div>
-                                <strong th:text="${donation.userName}">Donor Name</strong>
-                                <br>
-                                <small class="text-muted">
-                                    <i class="fas fa-clock"></i>
-                                    <span th:text="${#temporals.format(donation.donationDate, 'dd MMM yyyy, hh:mm a')}">Date</span>
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <h5 class="text-success mb-0">
-                                    ₹<span th:text="${#numbers.formatDecimal(donation.amount, 0, 2)}">0</span>
-                                </h5>
-                                <small class="text-muted" th:text="${donation.paymentMode}">Payment Mode</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        // *** NEW: Load and display user's wallet balance ***
+        if (userId) {
+            loadWalletBalance(userId);
+        }
 
-            <!-- Donation Card -->
-            <div class="col-lg-4">
-                <div class="card donation-card shadow-lg">
-                    <div class="card-body">
-                        <h4 class="mb-3">
-                            ₹<span th:text="${#numbers.formatDecimal(campaign.raisedAmount, 0, 2)}">0</span>
-                        </h4>
-                        <p class="text-muted mb-3">
-                            raised of ₹<span th:text="${#numbers.formatDecimal(campaign.goalAmount, 0, 2)}">0</span> goal
-                        </p>
+        if (donationForm) {
+            donationForm.addEventListener('submit', function(e) {
+                e.preventDefault();
 
-                        <div class="progress mb-3" style="height: 10px;">
-                            <div class="progress-bar bg-success"
-                                 th:style="'width: ' + ${campaign.progressPercentage} + '%'">
-                            </div>
-                        </div>
+                const amount = document.getElementById('amount').value;
+                const paymentMode = document.getElementById('paymentMode').value;
 
-                        <p class="mb-4">
-                            <strong th:text="${#numbers.formatDecimal(campaign.progressPercentage, 0, 1)}">0</strong>% Complete
-                        </p>
+                // *** NEW: Validate wallet balance before submission ***
+                checkBalanceAndDonate(userId, campaignId, amount, paymentMode);
+            });
+        }
+    });
 
-                        <!-- Donation Form -->
-                        <div sec:authorize="isAuthenticated()">
-                            <form th:action="@{/donations/make}" method="post" th:object="${donation}">
-                                <input type="hidden" th:field="*{campaignId}" th:value="${campaign.campaignId}">
+    // *** NEW FUNCTION: Load wallet balance ***
+    function loadWalletBalance(userId) {
+        fetch(`/api/wallet/balance/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.balance !== undefined) {
+                    document.getElementById('userWalletBalance').textContent =
+                        parseFloat(data.balance).toFixed(2);
+                    document.getElementById('walletBalanceDisplay').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading wallet balance:', error);
+            });
+    }
 
-                                <div class="mb-3">
-                                    <label class="form-label">Donation Amount (₹)</label>
-                                    <input type="number" th:field="*{amount}" class="form-control"
-                                           min="1" step="0.01" placeholder="Enter amount" required>
-                                </div>
+    // *** NEW FUNCTION: Check balance and process donation ***
+    function checkBalanceAndDonate(userId, campaignId, amount, paymentMode) {
+        // First, check if user has sufficient balance
+        fetch(`/api/wallet/check-balance/${userId}/${amount}`)
+            .then(response => response.json())
+            .then(balanceCheck => {
+                if (!balanceCheck.hasSufficientBalance) {
+                    showError(`Insufficient wallet balance! You have ₹${balanceCheck.currentBalance}, ` +
+                            `but need ₹${amount}. Please add ₹${balanceCheck.shortfall} to your wallet.`);
+                    return;
+                }
 
-                                <div class="mb-3">
-                                    <label class="form-label">Payment Mode</label>
-                                    <select th:field="*{paymentMode}" class="form-select" required>
-                                        <option value="">Select Payment Mode</option>
-                                        <option value="Credit Card">Credit Card</option>
-                                        <option value="Debit Card">Debit Card</option>
-                                        <option value="UPI">UPI</option>
-                                        <option value="Net Banking">Net Banking</option>
-                                    </select>
-                                </div>
+                // If balance is sufficient, proceed with donation
+                makeDonation(userId, campaignId, amount, paymentMode);
+            })
+            .catch(error => {
+                console.error('Error checking balance:', error);
+                showError('Error checking wallet balance. Please try again.');
+            });
+    }
 
-                                <button type="submit" class="btn btn-success w-100 btn-lg"
-                                        th:disabled="${campaign.status != 'ACTIVE'}">
-                                    <i class="fas fa-heart"></i> Donate Now
-                                </button>
-                            </form>
-                        </div>
+    // *** MODIFIED FUNCTION: Make donation ***
+    function makeDonation(userId, campaignId, amount, paymentMode) {
+        const donationData = {
+            userId: parseInt(userId),
+            campaignId: parseInt(campaignId),
+            amount: parseFloat(amount),
+            paymentMode: paymentMode
+        };
 
-                        <div sec:authorize="!isAuthenticated()" class="text-center">
-                            <p class="text-muted mb-3">Please login to make a donation</p>
-                            <a href="/login" class="btn btn-primary w-100">
-                                <i class="fas fa-sign-in-alt"></i> Login to Donate
-                            </a>
-                        </div>
+        fetch('/api/donations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(donationData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(text || 'Donation failed');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            showSuccess();
+            // Reload wallet balance
+            loadWalletBalance(userId);
+            // Refresh page after 2 seconds to show updated campaign amount
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        })
+        .catch(error => {
+            console.error('Error making donation:', error);
+            showError(error.message || 'Failed to process donation. Please try again.');
+        });
+    }
 
-                        <hr>
+    function showSuccess() {
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        errorMessage.style.display = 'none';
+        successMessage.style.display = 'block';
 
-                        <a th:href="@{/reports/campaign/{id}(id=${campaign.campaignId})}"
-                           class="btn btn-outline-primary w-100">
-                            <i class="fas fa-chart-bar"></i> View Full Report
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+        // Reset form
+        document.getElementById('donationForm').reset();
+    }
 
-<!-- Footer -->
-<footer class="bg-dark text-white py-4">
-    <div class="container text-center">
-        <p class="mb-0">&copy; 2025 College Fund Platform. All rights reserved.</p>
-    </div>
-</footer>
+    function showError(message) {
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        successMessage.style.display = 'none';
+        errorText.textContent = message;
+        errorMessage.style.display = 'block';
+    }
+</script>
 </body>
 </html>

@@ -4,11 +4,13 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +49,11 @@ public class User {
     @Column(nullable = false, length = 20)
     private String role = "USER"; // USER or ADMIN
 
+    // *** NEW FIELD: Wallet Balance ***
+    @DecimalMin(value = "0.0", message = "Wallet balance cannot be negative")
+    @Column(name = "wallet_balance", nullable = false, precision = 10, scale = 2)
+    private BigDecimal walletBalance = BigDecimal.ZERO;
+
     @CreationTimestamp
     @Column(name = "join_date", nullable = false, updatable = false)
     private LocalDateTime joinDate;
@@ -56,4 +63,26 @@ public class User {
 
     @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Campaign> createdCampaigns = new ArrayList<>();
+
+    // *** NEW METHOD: Add money to wallet ***
+    public void addToWallet(BigDecimal amount) {
+        if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+            this.walletBalance = this.walletBalance.add(amount);
+        }
+    }
+
+    // *** NEW METHOD: Deduct money from wallet ***
+    public boolean deductFromWallet(BigDecimal amount) {
+        if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0 &&
+                this.walletBalance.compareTo(amount) >= 0) {
+            this.walletBalance = this.walletBalance.subtract(amount);
+            return true;
+        }
+        return false;
+    }
+
+    // *** NEW METHOD: Check if user has sufficient balance ***
+    public boolean hasSufficientBalance(BigDecimal amount) {
+        return amount != null && this.walletBalance.compareTo(amount) >= 0;
+    }
 }

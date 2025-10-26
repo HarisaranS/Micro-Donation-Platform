@@ -27,31 +27,52 @@ public class DonationService {
     private final CampaignService campaignService;
 
     public DonationDTO makeDonation(DonationDTO donationDTO) {
+        // 1. Fetch the user
         User user = userRepository.findById(donationDTO.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + donationDTO.getUserId()));
 
+        // 2. Fetch the campaign
         Campaign campaign = campaignRepository.findById(donationDTO.getCampaignId())
-                .orElseThrow(() -> new RuntimeException("Campaign not found"));
+                .orElseThrow(() -> new RuntimeException("Campaign not found with id: " + donationDTO.getCampaignId()));
 
+        // 3. Validate campaign is active
         if (!campaign.isActive()) {
-            throw new RuntimeException("Campaign is not active");
+            throw new RuntimeException("Campaign is not active. Cannot accept donations.");
         }
 
+        // 4. Validate minimum donation amount
         if (donationDTO.getAmount().compareTo(BigDecimal.ONE) < 0) {
-            throw new RuntimeException("Minimum donation amount is 1");
+            throw new RuntimeException("Minimum donation amount is ₹1");
         }
 
+        // *** NEW: Check if user has sufficient wallet balance ***
+        if (!user.hasSufficientBalance(donationDTO.getAmount())) {
+            throw new RuntimeException("Insufficient wallet balance. Your current balance is ₹" +
+                    user.getWalletBalance() + ", but you are trying to donate ₹" +
+                    donationDTO.getAmount());
+        }
+
+        // *** NEW: Deduct amount from user's wallet ***
+        boolean deducted = user.deductFromWallet(donationDTO.getAmount());
+        if (!deducted) {
+            throw new RuntimeException("Failed to deduct amount from wallet. Please try again.");
+        }
+
+        // 5. Save updated user balance
+        userRepository.save(user);
+
+        // 6. Create and save donation record
         Donation donation = new Donation();
         donation.setUser(user);
         donation.setCampaign(campaign);
         donation.setAmount(donationDTO.getAmount());
         donation.setPaymentMode(donationDTO.getPaymentMode());
-        donation.setPaymentStatus("PAID"); // Simulating successful payment
+        donation.setPaymentStatus("PAID"); // Payment successful after wallet deduction
         donation.setTransactionId(generateTransactionId());
 
         Donation savedDonation = donationRepository.save(donation);
 
-        // Update campaign raised amount
+        // 7. Update campaign raised amount
         campaignService.updateCampaignRaisedAmount(campaign.getCampaignId(), donation.getAmount());
 
         return convertToDTO(savedDonation);
